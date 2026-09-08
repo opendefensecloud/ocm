@@ -1,0 +1,14 @@
+# OCM build artifacts — an airgap bundle is ~53 MB
+transport-archive
+transport-archive-airgap
+ctf
+
+# dev-kit
+common.mk
+.common.mk-download
+.common.mk-version
+.common.mk-checked
+bin/
+
+# direnv
+.direnv/
