@@ -1,0 +1,12 @@
+# Sigstore keyless: no secrets. On GitHub Actions the signing handler picks up
+# the ambient OIDC token and forwards it to cosign.
+type: generic.config.ocm.software/v1
+configurations:
+  - type: signing.config.ocm.software/v1alpha1
+    signature: opendefense.cloud
+    signer:
+      type: SigstoreSigningConfiguration/v1alpha1
+    verifier:
+      type: SigstoreVerificationConfiguration/v1alpha1
+      certificateOIDCIssuer: https://token.actions.githubusercontent.com
+      certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
