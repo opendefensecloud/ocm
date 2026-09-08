@@ -96,9 +96,13 @@ publishes every component whose version is not in the registry yet, so the
 workflow is safe to re-run. Pull requests validate but publish nothing.
 
 The tag `<component>/v<version>` is a convenience — it lets you check out the
-packaging state of a release. It triggers nothing and is an unsigned ref, so the
-provenance that counts lives in the descriptor instead: a `sources` entry
-records the packaging commit and is covered by the signature.
+packaging state of a release. It triggers nothing and is an unsigned ref.
+
+The descriptor is not a substitute: a `sources` entry is **not** covered by the
+signature (measured — two builds differing only in the commit produce an
+identical signed digest, and OCM warns about exactly this). What does bind the
+release to a commit is the Sigstore certificate, whose extensions record the
+workflow run and its revision.
 
 > [!IMPORTANT]
 > A packaging-only fix has **no version of its own** and ships with the next

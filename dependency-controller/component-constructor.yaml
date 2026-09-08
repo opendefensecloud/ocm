@@ -13,17 +13,6 @@ components:
         value: dependency-management
       - name: app.kubernetes.io/part-of
         value: dependency-controller
-    # Provenance inside the signed descriptor: which packaging commit produced
-    # this component version. The release tag records the same thing but is an
-    # unsigned ref, so it cannot be relied on.
-    sources:
-      - name: packaging
-        type: git
-        version: ${OCM_VERSION}
-        access:
-          type: GitHub/v1
-          repoUrl: github.com/opendefensecloud/ocm
-          commit: ${COMMIT_SHA}
     resources:
       # Helm Chart
       - name: dependency-controller-chart

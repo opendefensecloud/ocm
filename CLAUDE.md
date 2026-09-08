@@ -90,9 +90,8 @@ There is deliberately **no tag trigger**. A tag pushed by a workflow using
 would silently never publish.
 
 The tag is a lightweight, unsigned ref and `required_signatures` covers branches
-only — never treat it as provenance. Every constructor carries a `sources` entry
-with the packaging commit (`${COMMIT_SHA}`), which is inside the signed
-descriptor. New components need one too.
+only — never treat it as provenance. Do not reach for a `sources` entry either;
+see the traps table.
 
 ## Publishing model
 
@@ -124,6 +123,7 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
 | normalisation | v2 uses `jsonNormalisation/v4alpha1` + RSASSA-PSS. **v2 signatures do not verify with v1 tooling.** |
 | resolvers | `ocm.config.ocm.software/v1` with `prefix`/`priority` is deprecated. Use `resolvers.config.ocm.software/v1alpha1` with `componentNamePattern` globs — first match wins, no fallback. |
 | `ocm-setup-action` | v1-only; cannot resolve v2 release assets. |
+| `sources` | **Not covered by the signature.** Measured: two builds differing only in the source commit produce an identical signed digest, and the constructor warns `source content is recorded without a digest and is not verifiable`. Use a resource if it must be signed. |
 | source access types | **Not validated at all** — `totalerUnsinn/v9` builds fine. The registered type is `GitHub/v1`; the lowercase `gitHub` is a v1 alias. A typo here is silent. |
 
 ## Working here
