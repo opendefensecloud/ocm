@@ -118,26 +118,35 @@ jobs:
       # Pinned: with no cosign on PATH, OCM downloads one itself at signing time.
       # Needs >= v3.0.4.
       - name: Install cosign
-        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        if: github.event_name == 'push'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
           cosign-release: v3.0.4
 
+      # Signing is not idempotent — ocm errors with "signature already exists".
+      - name: Already signed?
+        id: signed
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make verify COMPONENT="$COMPONENT"
+
       - name: Sign (Sigstore keyless)
-        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        if: github.event_name == 'push' && steps.signed.outcome == 'failure'
         env:
           COMPONENT: ${{ matrix.component }}
         run: make sign COMPONENT="$COMPONENT"
 
       - name: Verify signature and signer identity
-        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        if: github.event_name == 'push'
         env:
           COMPONENT: ${{ matrix.component }}
         run: make verify COMPONENT="$COMPONENT"
 
       # Descriptor-only, so what must hold afterwards is resolvability.
       - name: Check a consumer can resolve the published component
-        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        if: github.event_name == 'push'
         env:
           COMPONENT: ${{ matrix.component }}
         run: make resolve-check COMPONENT="$COMPONENT"
@@ -145,7 +154,7 @@ jobs:
       # Record only. Created via the API so checkout keeps persist-credentials:
       # false. Idempotent.
       - name: Tag the released commit
-        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMPONENT: ${{ matrix.component }}
