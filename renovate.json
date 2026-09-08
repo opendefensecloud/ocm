@@ -1,0 +1,64 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>opendefensecloud/renovate-config"
+  ],
+  "customManagers": [
+    {
+      "description": "Container images referenced by any component-constructor",
+      "customType": "jsonata",
+      "fileFormat": "yaml",
+      "managerFilePatterns": [
+        "/.*/component-constructor.yaml$/"
+      ],
+      "matchStrings": [
+        "components.resources[type = 'ociImage'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': $split(access.imageReference, ':')[1]}",
+        "components.resources[type = 'ociImage'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': version}"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "Helm charts published as OCI artifacts. The ocm-components manager only covers access.type 'helm' (helmChart + helmRepository); charts pushed to ghcr use access.type 'ociArtifact' with an imageReference and would otherwise never be bumped.",
+      "customType": "jsonata",
+      "fileFormat": "yaml",
+      "managerFilePatterns": [
+        "/.*/component-constructor.yaml$/"
+      ],
+      "matchStrings": [
+        "components.resources[type = 'helmChart' and access.type = 'ociArtifact'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': $split(access.imageReference, ':')[1]}",
+        "components.resources[type = 'helmChart' and access.type = 'ociArtifact'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': version}"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "The pinned OCM v2 CLI. dev-kit's tools.lock manager cannot track this \u2014 it installs the legacy v1 CLI, so the version lives in the Makefile instead.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Makefile$/"
+      ],
+      "matchStrings": [
+        "OCM_CLI_VERSION := (?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "open-component-model/open-component-model",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Never pin digests inside a component-constructor. The shared preset sets pinDigests globally, but a digest suffix turns 'repo:tag' into 'repo:tag@sha256:...', which breaks the jsonata $split on ':' above. OCM resolves and records digests at build time anyway.",
+      "matchFileNames": [
+        "**/component-constructor.yaml"
+      ],
+      "pinDigests": false
+    },
+    {
+      "description": "A wrapped image or chart bump IS the component's new version \u2014 the component version is derived from the chart resource, so a Renovate bump is what produces a release. Typed as `fix` to keep the history conventional.",
+      "matchFileNames": [
+        "**/component-constructor.yaml"
+      ],
+      "semanticCommitType": "fix"
+    }
+  ]
+}
