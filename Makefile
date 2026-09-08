@@ -53,9 +53,6 @@ COMPONENT_NAME = opendefense.cloud/$(COMPONENT)
 CTF            = ./transport-archive
 
 # Derived from the wrapped chart: chart 0.4.0 -> component 0.4.0. See README.
-# Packaging provenance, recorded in the descriptor's sources entry.
-COMMIT_SHA ?= $(shell git rev-parse HEAD 2>/dev/null)
-
 OCM_VERSION ?= $(shell yq -r '[.components[0].resources[] | select(.type == "helmChart") | .version] | .[0] // ""' $(CONSTRUCTOR) 2>/dev/null)
 
 .PHONY: _require-version
@@ -64,7 +61,6 @@ _require-version:
 		echo "error: could not derive a version for '$(COMPONENT)'." >&2; \
 		echo "       $(CONSTRUCTOR) must contain a resource of type helmChart with a version." >&2; \
 		exit 1; }
-	@[ -n "$(COMMIT_SHA)" ] || { echo "error: COMMIT_SHA is empty (not a git checkout?)" >&2; exit 1; }
 
 .PHONY: setup
 setup: $(OCM)
@@ -81,13 +77,13 @@ version: _require-version ## Print the version derived from the wrapped chart
 validate: _require-version $(OCM) ## Build COMPONENT into a throwaway CTF. Publishes nothing.
     # No -o flag: every output mode crashes on OCI access types in 0.15.0.
 	@d=$$(mktemp -d) && trap 'rm -rf "$$d"' EXIT && \
-	OCM_VERSION=$(OCM_VERSION) COMMIT_SHA=$(COMMIT_SHA) $(OCM) add component-version \
+	OCM_VERSION=$(OCM_VERSION) $(OCM) add component-version \
 		--constructor $(CONSTRUCTOR) --repository "ctf::$$d/ctf"
 
 .PHONY: build
 build: _require-version $(OCM) ## Build COMPONENT into ./transport-archive
 	rm -rf $(CTF)
-	OCM_VERSION=$(OCM_VERSION) COMMIT_SHA=$(COMMIT_SHA) $(OCM) add component-version \
+	OCM_VERSION=$(OCM_VERSION) $(OCM) add component-version \
 		--constructor $(CONSTRUCTOR) --repository ctf::$(CTF)
 
 .PHONY: airgap
@@ -127,7 +123,7 @@ verify: _require-version $(OCM) ## Verify the signature and the signer identity
 .PHONY: tag
 tag: _require-version ## Create the release tag for COMPONENT
 	@t="$(COMPONENT)/v$(OCM_VERSION)"; \
-	repo="$${GITHUB_REPOSITORY:-opendefensecloud/ocm}"; sha="$${GITHUB_SHA:-$(COMMIT_SHA)}"; \
+	repo="$${GITHUB_REPOSITORY:-opendefensecloud/ocm}"; sha="$${GITHUB_SHA:-$$(git rev-parse HEAD)}"; \
 	if gh api "repos/$$repo/git/ref/tags/$$t" >/dev/null 2>&1; then echo "tag $$t already exists"; \
 	else gh api "repos/$$repo/git/refs" -f ref="refs/tags/$$t" -f sha="$$sha" >/dev/null && echo "created tag $$t"; fi
 
