@@ -1,0 +1,87 @@
+# Production dependency-controller Configuration
+# High-availability setup:
+# - Controller: 2 replicas (leader election keeps one active)
+# - Webhook:    3 replicas — it sits in the admission path, so an outage
+#               blocks writes to every protected resource
+# - TLS issued and rotated by cert-manager
+# - Pod anti-affinity spreads replicas across nodes
+# - Headroom on limits for larger workspace counts
+#
+# REQUIRES cert-manager, and issuerRef below must name a real ClusterIssuer.
+
+image:
+  pullPolicy: IfNotPresent
+
+apiExportName: dependencies.opendefense.cloud
+
+# Set explicitly in production rather than deriving it from the kubeconfig.
+kcpBaseHost: ""
+
+controller:
+  replicas: 2
+
+  serviceAccount:
+    create: true
+    name: dependency-controller
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 128Mi
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: dependency-controller
+
+webhook:
+  # Admission webhooks are in the critical path: fewer replicas than 3 risks
+  # rejecting writes during a rolling update or node drain.
+  replicas: 3
+
+  port: 9443
+  tlsCertDir: /etc/webhook-tls
+
+  serviceAccount:
+    create: true
+    name: dependency-webhook
+
+  service:
+    type: ClusterIP
+    port: 443
+
+  tls:
+    existingSecret: ""
+    certManager:
+      enabled: true
+      issuerRef:
+        # Replace with a ClusterIssuer that exists in the target cluster.
+        name: ""
+        kind: ClusterIssuer
+      additionalDnsNames: []
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 128Mi
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: dependency-webhook
