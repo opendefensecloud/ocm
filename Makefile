@@ -116,7 +116,8 @@ sign: _require-version $(OCM) ## Sign the published component (Sigstore keyless)
 .PHONY: verify
 verify: _require-version $(OCM) ## Verify the signature and the signer identity
 	$(OCM) verify component-version \
-		"$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" --signature opendefense.cloud
+		"$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" --signature opendefense.cloud \
+		--verifier-spec sigstore-verify.yaml
 
 # --dry-run validates the whole graph without moving the ~53 MB.
 # Record only; nothing triggers off it. Idempotent.
