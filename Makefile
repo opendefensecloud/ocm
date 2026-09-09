@@ -1,6 +1,6 @@
 DEV_KIT ?= 1
 ifeq ($(DEV_KIT),1)
-DEV_KIT_VERSION := v1.0.8
+DEV_KIT_VERSION := v2.1.0
 
 # A stale cache is dropped BEFORE the include: make would otherwise never run
 # the recipe, because the file already exists. (ocm-components writes
