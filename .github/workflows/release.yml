@@ -1,0 +1,162 @@
+name: Release OCM Components
+
+# Components are discovered from the tree; versions are derived from the wrapped
+# chart. A Renovate bump on main is published by the same run. See README.
+#
+# No tag trigger on purpose: a tag pushed with GITHUB_TOKEN starts no workflow,
+# so publishing happens inline and the tag is written afterwards as a record.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    name: Discover components
+    runs-on: ubuntu-24.04
+    outputs:
+      components: ${{ steps.list.outputs.components }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Discover components
+        id: list
+        env:
+          DEV_KIT: "0"
+        run: |
+          set -euo pipefail
+          LIST=$(make components)
+          [[ "$LIST" != "[]" ]] || { echo "::error::no components found"; exit 1; }
+          echo "components=${LIST}" >> "$GITHUB_OUTPUT"
+          echo "Components: ${LIST}"
+
+  component:
+    name: Build and publish
+    needs: discover
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write  # create the release tag via the API
+      packages: write  # publish the component descriptor to ghcr
+      id-token: write  # ambient OIDC for Sigstore keyless signing
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.discover.outputs.components) }}
+    env:
+      # Skip the dev-kit bootstrap: CI uses none of its targets and it fetches
+      # common.mk from a mutable tag.
+      DEV_KIT: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # ocm-setup-action is v1-only and cannot resolve v2 release assets.
+      - name: Set up OCM v2 CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # gh attestation verify
+        run: |
+          make setup
+          echo "$PWD/bin" >> "$GITHUB_PATH"
+
+      # Expressions go through env, never interpolated into shell text.
+      - name: Derive component version
+        id: version
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          set -euo pipefail
+          VERSION=$(make version COMPONENT="$COMPONENT")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "${COMPONENT} -> ${VERSION}"
+
+      - name: Validate
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make validate COMPONENT="$COMPONENT"
+
+      - name: Log in to ghcr
+        if: github.event_name == 'push'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Keeps the workflow re-runnable: only an unpublished version is pushed.
+      - name: Is this version already published?
+        id: published
+        if: github.event_name == 'push'
+        env:
+          COMPONENT: ${{ matrix.component }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if make published COMPONENT="$COMPONENT"; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "${COMPONENT} ${VERSION} is already published — nothing to do."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+            echo "${COMPONENT} ${VERSION} is new — will publish."
+          fi
+
+      - name: Publish
+        if: github.event_name == 'push' && steps.published.outputs.already == 'false'
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make publish COMPONENT="$COMPONENT"
+
+      # Pinned: with no cosign on PATH, OCM downloads one itself at signing time.
+      # Needs >= v3.0.4.
+      - name: Install cosign
+        if: github.event_name == 'push'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.0.4
+
+      # Signing is not idempotent — ocm errors with "signature already exists".
+      - name: Already signed?
+        id: signed
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make verify COMPONENT="$COMPONENT"
+
+      - name: Sign (Sigstore keyless)
+        if: github.event_name == 'push' && steps.signed.outcome == 'failure'
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make sign COMPONENT="$COMPONENT"
+
+      - name: Verify signature and signer identity
+        if: github.event_name == 'push'
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make verify COMPONENT="$COMPONENT"
+
+      # Descriptor-only, so what must hold afterwards is resolvability.
+      - name: Check a consumer can resolve the published component
+        if: github.event_name == 'push'
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: make resolve-check COMPONENT="$COMPONENT"
+
+      # Record only. Created via the API so checkout keeps persist-credentials:
+      # false. Idempotent.
+      - name: Tag the released commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPONENT: ${{ matrix.component }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: make tag COMPONENT="$COMPONENT"

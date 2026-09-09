@@ -1,0 +1,61 @@
+# Minimal dependency-controller Configuration
+# Deploys a single-instance setup suitable for:
+# - Development environments
+# - Testing and evaluation
+# - Resource-constrained environments
+# - Non-HA scenarios
+#
+# TLS for the admission webhook uses a self-managed secret rather than
+# cert-manager, so this config has no external dependencies.
+
+image:
+  pullPolicy: IfNotPresent
+
+apiExportName: dependencies.opendefense.cloud
+
+# Derived from the kubeconfig when empty.
+kcpBaseHost: ""
+
+controller:
+  replicas: 1
+
+  serviceAccount:
+    create: true
+    name: dependency-controller
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+webhook:
+  replicas: 1
+
+  port: 9443
+  tlsCertDir: /etc/webhook-tls
+
+  serviceAccount:
+    create: true
+    name: dependency-webhook
+
+  service:
+    type: ClusterIP
+    port: 443
+
+  tls:
+    # Supply a Secret with tls.crt, tls.key and ca.crt. Set this before
+    # installing — the webhook cannot start without certificates.
+    existingSecret: ""
+    certManager:
+      enabled: false
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
