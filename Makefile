@@ -46,7 +46,7 @@ $(OCM): $(LOCALBIN)
 COMPONENTS := $(patsubst %/component-constructor.yaml,%,$(wildcard */component-constructor.yaml))
 
 COMPONENT ?= dependency-controller
-REGISTRY  ?= ghcr.io/opendefensecloud/ocm
+REGISTRY  ?= ghcr.io/opendefensecloud
 
 CONSTRUCTOR    = $(COMPONENT)/component-constructor.yaml
 COMPONENT_NAME = opendefense.cloud/$(COMPONENT)
