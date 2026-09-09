@@ -66,6 +66,13 @@
         "**/component-constructor.yaml"
       ],
       "semanticCommitType": "fix"
+    },
+    {
+      "description": "Helm charts published as OCI artifacts carry no 'created' field in their config blob (Helm's config schema has none), so Renovate cannot determine a release age and minimumReleaseAge never passes — the update would hang forever. Same class as the shared preset's exemption for digest updates. The images in the same group keep the stability window.",
+      "matchPackageNames": [
+        "ghcr.io/opendefensecloud/charts/**"
+      ],
+      "minimumReleaseAge": null
     }
   ]
 }
