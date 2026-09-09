@@ -106,8 +106,9 @@ artifact is missing.
 ## Signing
 
 Sigstore keyless via ambient GitHub OIDC. **There are no signing secrets.**
-`.ocmconfig` exists only to select the Sigstore signer over the RSA default and
-to pin which workflow identity may have signed. Signing does not work offline.
+`.ocmconfig` selects the Sigstore signer over the RSA default, pins which
+workflow identity may have signed, and carries the registry credentials.
+Signing does not work offline.
 
 ## OCM v2 vs v1 — traps that cost real time
 
@@ -123,6 +124,7 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
 | normalisation | v2 uses `jsonNormalisation/v4alpha1` + RSASSA-PSS. **v2 signatures do not verify with v1 tooling.** |
 | resolvers | `ocm.config.ocm.software/v1` with `prefix`/`priority` is deprecated. Use `resolvers.config.ocm.software/v1alpha1` with `componentNamePattern` globs — first match wins, no fallback. |
 | `ocm-setup-action` | v1-only; cannot resolve v2 release assets. |
+| docker credentials | OCM does **not** find `~/.docker/config.json` on its own for pushes. Without an explicit `DockerConfig/v1` credentials entry it requests a push token anonymously and ghcr answers 403. A public *pull* works either way, which makes the omission easy to miss. |
 | `sources` | **Not covered by the signature.** Measured: two builds differing only in the source commit produce an identical signed digest, and the constructor warns `source content is recorded without a digest and is not verifiable`. Use a resource if it must be signed. |
 | source access types | **Not validated at all** — `totalerUnsinn/v9` builds fine. The registered type is `GitHub/v1`; the lowercase `gitHub` is a v1 alias. A typo here is silent. |
 
