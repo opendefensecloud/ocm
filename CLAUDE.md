@@ -145,12 +145,14 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
   **conventional commits are enforced** (commitlint + PR title check). See
   `CONTRIBUTING.md`.
 - Renovate maintains the wrapped versions through jsonata managers over
-  `component-constructor.yaml`; do not add `# renovate:` annotations. Three
-  things differ from the ocm-components config and are load-bearing: a manager
-  for charts published as `ociArtifact` (theirs only matches `access.type: helm`
-  and would never bump ours), `pinDigests: false` inside constructors (a digest
-  suffix breaks the manager's `$split` on `:`), and a manager for
-  `OCM_CLI_VERSION` in the Makefile (their `tools.lock` manager tracks v1).
+  `component-constructor.yaml`; do not add `# renovate:` annotations. Three things
+  differ from the shared config and are load-bearing:
+  - a manager for charts published as `ociArtifact` — the ocm-components one only
+    matches `access.type: helm` and would never bump ours;
+  - `pinDigests: false` inside constructors — a digest suffix breaks the
+    manager's `$split` on `:`;
+  - a manager for `OCM_CLI_VERSION` in the Makefile — the shared preset's
+    `tools.lock` manager tracks the v1 CLI;
 
 ## Not yet adopted
 

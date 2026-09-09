@@ -116,12 +116,13 @@ jobs:
         run: make publish COMPONENT="$COMPONENT"
 
       # Pinned: with no cosign on PATH, OCM downloads one itself at signing time.
-      # Needs >= v3.0.4.
+      # No cosign-release input — the action's default already satisfies OCM's
+      # ">= v3.0.4", and pinning the action by sha pins that default too. An
+      # explicit version would only add a dependency Renovate cannot pin, since
+      # the input takes a release tag rather than a commit sha.
       - name: Install cosign
         if: github.event_name == 'push'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        with:
-          cosign-release: v3.0.4
 
       # Signing is not idempotent — ocm errors with "signature already exists".
       - name: Already signed?
