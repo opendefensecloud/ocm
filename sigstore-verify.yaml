@@ -1,0 +1,12 @@
+# Verifier spec for `ocm verify component-version --verifier-spec`.
+#
+# This cannot live in .ocmconfig: the CLI reads the `signer` from
+# signing.config.ocm.software/v1alpha1 but NOT the `verifier` — it logs
+# "no verifier specification file given, using default RSASSA-PSS" and then
+# fails on the Sigstore bundle's media type.
+#
+# Pins WHO may have signed. Without both constraints a keyless signature proves
+# only that somebody signed.
+type: SigstoreVerificationConfiguration/v1alpha1
+certificateOIDCIssuer: https://token.actions.githubusercontent.com
+certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
