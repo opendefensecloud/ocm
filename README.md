@@ -68,7 +68,7 @@ Consumers build their own self-contained bundle when they need one:
 
 ```bash
 ocm transfer component-version \
-  ghcr.io/opendefensecloud/ocm//opendefense.cloud/dependency-controller:<version> \
+  ghcr.io/opendefensecloud//opendefense.cloud/dependency-controller:<version> \
   ctf::./bundle --copy-resources --recursive
 ```
 
