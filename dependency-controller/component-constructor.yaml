@@ -17,11 +17,11 @@ components:
       # Helm Chart
       - name: dependency-controller-chart
         type: helmChart
-        version: "0.4.0"
+        version: "0.5.0"
         relation: external
         access:
           type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/charts/dependency-controller:0.4.0
+          imageReference: ghcr.io/opendefensecloud/charts/dependency-controller:0.5.0
       # Values template, rendered by ocm-kit: the label links it to the chart,
       # and the image references it emits are the localized ones after transfer.
       - name: dependency-controller-chart-values-template
@@ -38,19 +38,19 @@ components:
       # Controller Image
       - name: dependency-controller-image
         type: ociImage
-        version: "0.4.0"
+        version: "v0.5.0"
         relation: external
         access:
           type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/dependency-controller:0.4.0
+          imageReference: ghcr.io/opendefensecloud/dependency-controller:v0.5.0
       # Admission Webhook Image
       - name: dependency-webhook-image
         type: ociImage
-        version: "0.4.0"
+        version: "v0.5.0"
         relation: external
         access:
           type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/dependency-webhook:0.4.0
+          imageReference: ghcr.io/opendefensecloud/dependency-webhook:v0.5.0
       # Minimal Configuration (single instance, development/testing)
       - name: dependency-controller-minimal-config
         type: yaml
