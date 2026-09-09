@@ -35,9 +35,9 @@ One directory per component, discovered automatically:
 └── README.md
 ```
 
-Everything else is shared: `Makefile` (all commands), `.ocmconfig` (signing),
-`renovate.json` (version bumps), `.github/workflows/` (release, Scorecard,
-commit and workflow linting).
+Everything else is shared: `Makefile` (all commands), `.ocmconfig` (credentials
+and signer), `sigstore-verify.yaml` (verifier), `renovate.json` (version bumps),
+`.github/workflows/` (release, Scorecard, commit and workflow linting).
 
 ## Adding a component
 
@@ -110,23 +110,44 @@ workflow run and its revision.
 
 ## Signing
 
-Sigstore keyless, configured in `.ocmconfig`. **There are no signing secrets:**
-`permissions: id-token: write` provides an ambient OIDC token that the signing
-handler forwards to cosign, and Fulcio issues a short-lived certificate bound to
-the workflow identity.
+Sigstore keyless. **There are no signing secrets:** `permissions: id-token: write`
+provides an ambient OIDC token that the signing handler forwards to cosign, and
+Fulcio issues a short-lived certificate bound to the workflow identity — which is
+also what ties a release to its commit.
 
-Verification pins *who* may have signed — excerpt from `.ocmconfig`:
+The signature is stored *inside the component descriptor*, not as a separate
+registry artifact, so GitHub's package page shows no signature badge. Check it
+with `make verify`.
+
+Configuration is split across two files, and the split is not obvious:
+
+| File | Holds |
+| --- | --- |
+| `.ocmconfig` | registry credentials, and the **signer** |
+| `sigstore-verify.yaml` | the **verifier** — passed via `--verifier-spec` |
+
+> [!WARNING]
+> A `verifier:` key inside `.ocmconfig` is **silently ignored**. `ocm verify`
+> logs *"no verifier specification file given, using default RSASSA-PSS"* and
+> then fails on the Sigstore bundle's media type. The verifier must be its own
+> file.
+>
+> Registry credentials are likewise **not** optional: without an explicit
+> `DockerConfig/v1` entry OCM requests a push token anonymously and ghcr answers
+> `403`. A public *pull* works either way, which makes the omission easy to miss.
+
+Verification pins *who* may have signed — without both constraints a keyless
+signature proves only that somebody signed:
 
 ```yaml
+# sigstore-verify.yaml
 certificateOIDCIssuer: https://token.actions.githubusercontent.com
 certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
 ```
 
 Signing does not work offline; locally you need `SIGSTORE_ID_TOKEN` set.
 
-`.ocmconfig` exists *only* for this. Registry credentials and resolvers are not
-needed because v2 resolves the Docker config itself, and no component declares
-`componentReferences`.
+Resolvers are not configured — no component declares `componentReferences`.
 
 ## Migrating from the v1 repositories
 

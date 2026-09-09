@@ -106,9 +106,13 @@ artifact is missing.
 ## Signing
 
 Sigstore keyless via ambient GitHub OIDC. **There are no signing secrets.**
-`.ocmconfig` selects the Sigstore signer over the RSA default, pins which
-workflow identity may have signed, and carries the registry credentials.
-Signing does not work offline.
+`.ocmconfig` carries the registry credentials and selects the Sigstore signer
+over the RSA default. The **verifier lives in `sigstore-verify.yaml`** and is
+passed with `--verifier-spec`; a `verifier:` key in `.ocmconfig` is silently
+ignored. Signing does not work offline.
+
+The signature is stored inside the component descriptor, not as a registry
+artifact — there is nothing for GitHub's package UI to display.
 
 ## OCM v2 vs v1 — traps that cost real time
 
