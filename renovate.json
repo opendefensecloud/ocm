@@ -31,7 +31,7 @@
       "datasourceTemplate": "docker"
     },
     {
-      "description": "The pinned OCM v2 CLI. dev-kit's tools.lock manager cannot track this \u2014 it installs the legacy v1 CLI, so the version lives in the Makefile instead.",
+      "description": "The pinned OCM v2 CLI. dev-kit's tools.lock manager cannot track this — it installs the legacy v1 CLI, so the version lives in the Makefile instead.",
       "customType": "regex",
       "managerFilePatterns": [
         "/(^|/)Makefile$/"
@@ -47,6 +47,13 @@
   ],
   "packageRules": [
     {
+      "description": "The image repositories publish both 0.5.0 and v0.5.0 for the same release; the chart repository only publishes unprefixed tags. Without this, Renovate picks the v-prefixed image tags and a component ends up mixing both formats. Constrain every constructor dependency to the unprefixed scheme — the common denominator.",
+      "matchFileNames": [
+        "**/component-constructor.yaml"
+      ],
+      "allowedVersions": "/^\\d+\\.\\d+\\.\\d+$/"
+    },
+    {
       "description": "Never pin digests inside a component-constructor. The shared preset sets pinDigests globally, but a digest suffix turns 'repo:tag' into 'repo:tag@sha256:...', which breaks the jsonata $split on ':' above. OCM resolves and records digests at build time anyway.",
       "matchFileNames": [
         "**/component-constructor.yaml"
@@ -54,7 +61,7 @@
       "pinDigests": false
     },
     {
-      "description": "A wrapped image or chart bump IS the component's new version \u2014 the component version is derived from the chart resource, so a Renovate bump is what produces a release. Typed as `fix` to keep the history conventional.",
+      "description": "A wrapped image or chart bump IS the component's new version — the component version is derived from the chart resource, so a Renovate bump is what produces a release. Typed as `fix` to keep the history conventional.",
       "matchFileNames": [
         "**/component-constructor.yaml"
       ],
