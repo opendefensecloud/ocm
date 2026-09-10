@@ -1,0 +1,54 @@
+# Production krop-controller Configuration
+# High-availability setup:
+# - 2 replicas with leader election, so exactly one manager is active
+# - Pod anti-affinity spreads replicas across nodes
+# - Headroom on limits for larger blueprint counts
+#
+# There is no admission webhook in this chart, so no cert-manager is required.
+# REQUIRES a Secret holding a kubeconfig scoped to the provider workspace.
+
+replicaCount: 2
+
+image:
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+controller:
+  healthProbeBindAddress: ":8081"
+  metricsBindAddress: ":8080"
+  # Mandatory with replicaCount > 1: without it every replica runs the
+  # reconciler and they fight over the same blueprints.
+  leaderElect: true
+  extraArgs: []
+
+kcp:
+  kubeconfigSecret:
+    # Replace with a Secret that exists in the target cluster.
+    name: ""
+    key: kubeconfig
+
+hostKubeconfig:
+  kubeconfigSecret:
+    name: ""
+    key: kubeconfig
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: krop-controller

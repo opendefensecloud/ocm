@@ -1,0 +1,48 @@
+# Minimal krop-controller Configuration
+# Deploys a single-instance setup suitable for:
+# - Development environments
+# - Testing and evaluation
+# - Resource-constrained environments
+# - Non-HA scenarios
+#
+# A single replica needs no leader election. There is no admission webhook in
+# this chart, so this config has no TLS or cert-manager dependency.
+
+replicaCount: 1
+
+image:
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+controller:
+  healthProbeBindAddress: ":8081"
+  metricsBindAddress: ":8080"
+  # A second replica requires leaderElect: true — see production-values.yaml.
+  leaderElect: false
+  extraArgs: []
+
+kcp:
+  kubeconfigSecret:
+    # Supply a Secret holding a kubeconfig scoped to the provider workspace.
+    # Left empty the controller falls back to in-cluster config, which is not
+    # workspace-scoped and fails against a real kcp front-proxy.
+    name: ""
+    key: kubeconfig
+
+# Resources with `target: host` are written to the cluster the pod runs in.
+# Set a Secret here only to route them at a different cluster.
+hostKubeconfig:
+  kubeconfigSecret:
+    name: ""
+    key: kubeconfig
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 10m
+    memory: 128Mi

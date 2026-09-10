@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/krop-controller
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: krop-controller
+      - name: app.kubernetes.io/component
+        value: resource-orchestration
+      - name: app.kubernetes.io/part-of
+        value: krop-controller
+    resources:
+      # Helm Chart
+      - name: krop-controller-chart
+        type: helmChart
+        version: "0.1.0"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ghcr.io/opendefensecloud/charts/krop-controller:0.1.0
+      # Values template, rendered by ocm-kit: the label links it to the chart,
+      # and the image reference it emits is the localized one after transfer.
+      - name: krop-controller-chart-values-template
+        type: yaml
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: krop-controller-chart
+        relation: local
+        input:
+          type: file
+          path: values.yaml.tpl
+      # Controller Image. 
+      - name: krop-controller-image
+        type: ociImage
+        version: "0.1.0"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ghcr.io/opendefensecloud/krop-controller:0.1.0
+      # Minimal Configuration (single instance, development/testing)
+      - name: krop-controller-minimal-config
+        type: yaml
+        relation: local
+        input:
+          type: file
+          path: minimal-values.yaml
+      # Production Configuration (HA with leader election, anti-affinity)
+      - name: krop-controller-production-config
+        type: yaml
+        relation: local
+        input:
+          type: file
+          path: production-values.yaml
