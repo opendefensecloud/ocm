@@ -73,6 +73,14 @@
       "matchFileNames": [
         "**/component-constructor.yaml"
       ]
+    },
+    {
+      "description": "One PR per component. A component's version is derived from its chart, so its chart and both images have to move together — but two different components must never share a PR, or one merge publishes two releases. groupSlug has to be set alongside groupName: the shared preset pins it to all-minor-updates, and groupName alone does not override it — measured, the branch then comes out named after the literal, un-expanded template.",
+      "matchFileNames": [
+        "**/component-constructor.yaml"
+      ],
+      "groupName": "{{parentDir}}",
+      "groupSlug": "{{parentDir}}"
     }
   ]
 }

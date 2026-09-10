@@ -145,7 +145,7 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
   **conventional commits are enforced** (commitlint + PR title check). See
   `CONTRIBUTING.md`.
 - Renovate maintains the wrapped versions through jsonata managers over
-  `component-constructor.yaml`; do not add `# renovate:` annotations. Four things
+  `component-constructor.yaml`; do not add `# renovate:` annotations. Six things
   differ from the shared config and are load-bearing:
   - a manager for charts published as `ociArtifact` — the ocm-components one only
     matches `access.type: helm` and would never bump ours;
@@ -156,6 +156,15 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
   - `allowedVersions` restricting constructors to unprefixed versions — the image
     repositories publish both `0.5.0` and `v0.5.0`, the chart repository only the
     former, so without it a component mixes both formats;
+  - `groupName`/`groupSlug` set to `{{parentDir}}` — one PR per component. The
+    shared preset puts every minor update into a single branch, which would
+    publish two components off one merge. **Both** keys are required: the preset
+    pins `groupSlug`, and `groupName` alone does not override it — the branch
+    then comes out named after the literal, un-expanded template;
+  - `minimumReleaseAge: null` for constructors — the docker datasource builds its
+    release list from the registry tag list, which carries no dates, so no
+    release ever gets a `releaseTimestamp` and the window can never be satisfied.
+    Updates sit at `pendingChecks: true` indefinitely.
 
 ## Not yet adopted
 
