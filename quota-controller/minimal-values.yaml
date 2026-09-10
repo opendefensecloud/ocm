@@ -1,0 +1,73 @@
+# Minimal quota-controller Configuration
+# Deploys a single-instance setup suitable for:
+# - Development environments
+# - Testing and evaluation
+# - Resource-constrained environments
+# - Non-HA scenarios
+#
+# TLS for the admission webhook uses a self-managed secret rather than
+# cert-manager, so this config has no external dependencies.
+
+apiExportName: quota-provider
+
+kcp:
+  workspace: root:cloud-api-system
+
+controller:
+  replicas: 1
+
+  image:
+    pullPolicy: IfNotPresent
+
+  serviceAccount:
+    create: true
+    name: quota-controller
+
+  leaderElect: true
+
+  # Must not exceed reservationTTL, and must match webhook.reservationTTL.
+  reservationTTL: 60s
+  resyncInterval: 60s
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+webhook:
+  replicas: 1
+
+  image:
+    pullPolicy: IfNotPresent
+
+  port: 9443
+  tlsCertDir: /etc/webhook-tls
+
+  serviceAccount:
+    create: true
+    name: quota-webhook
+
+  service:
+    type: ClusterIP
+    port: 443
+
+  tls:
+    # Supply a Secret with tls.crt, tls.key and ca.crt. Set this before
+    # installing — the webhook mounts it for its serving certificate and the
+    # controller mounts ca.crt from the same Secret.
+    existingSecret: ""
+    certManager:
+      enabled: false
+
+  reservationTTL: 60s
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
