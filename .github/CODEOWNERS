@@ -1,2 +1,3 @@
 # Per-component ownership; add a line whenever a component is added.
 /dependency-controller/   @opendefensecloud/cat
+/quota-controller/        @opendefensecloud/cat

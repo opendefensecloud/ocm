@@ -21,6 +21,7 @@ from their own source repositories.
 | Component | Wraps | Docs |
 | --- | --- | --- |
 | `opendefense.cloud/dependency-controller` | controller + webhook images, Helm chart | [README](dependency-controller/README.md) |
+| `opendefense.cloud/quota-controller` | controller + webhook images, Helm chart | [README](quota-controller/README.md) |
 
 ## Layout
 

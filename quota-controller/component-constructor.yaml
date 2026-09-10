@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/quota-controller
+    # v2 has no --version flag; the value comes from the environment. An unset
+    # variable expands to "" silently, so the Makefile guards it.
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: quota-controller
+      - name: app.kubernetes.io/component
+        value: quota-management
+      - name: app.kubernetes.io/part-of
+        value: quota-controller
+    resources:
+      # Helm Chart
+      - name: quota-controller-chart
+        type: helmChart
+        version: "0.1.0"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ghcr.io/opendefensecloud/charts/quota-controller:0.1.0
+      # Values template, rendered by ocm-kit: the label links it to the chart,
+      # and the image references it emits are the localized ones after transfer.
+      - name: quota-controller-chart-values-template
+        type: yaml
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: quota-controller-chart
+        relation: local
+        input:
+          type: file
+          path: values.yaml.tpl
+
+      # Controller Image
+      - name: quota-controller-image
+        type: ociImage
+        version: "0.1.0"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ghcr.io/opendefensecloud/quota-controller:0.1.0
+      # Admission Webhook Image
+      - name: quota-webhook-image
+        type: ociImage
+        version: "0.1.0"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ghcr.io/opendefensecloud/quota-webhook:0.1.0
+      # Minimal Configuration (single instance, development/testing)
+      - name: quota-controller-minimal-config
+        type: yaml
+        relation: local
+        input:
+          type: file
+          path: minimal-values.yaml
+      # Production Configuration (HA, cert-manager TLS, anti-affinity)
+      - name: quota-controller-production-config
+        type: yaml
+        relation: local
+        input:
+          type: file
+          path: production-values.yaml
