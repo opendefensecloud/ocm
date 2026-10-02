@@ -27,7 +27,7 @@ endif
 # dev-kit's ocm rule installs the legacy v1 CLI, so v2 is installed here.
 # The release binary is fetched directly and its GitHub build attestation is
 # verified before it is installed — no piped installer script.
-OCM_CLI_VERSION := 0.15.0
+OCM_CLI_VERSION := 0.17.0
 OCM_REPO        := open-component-model/open-component-model
 OCM_OS          := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 OCM_ARCH        := $(shell uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
