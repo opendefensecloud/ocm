@@ -21,7 +21,7 @@ concurrency:
 jobs:
   discover:
     name: Discover components
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       components: ${{ steps.list.outputs.components }}
     steps:
@@ -43,7 +43,7 @@ jobs:
   component:
     name: Build and publish
     needs: discover
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write  # create the release tag via the API
       packages: write  # publish the component descriptor to ghcr
