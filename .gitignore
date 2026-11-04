@@ -2,6 +2,7 @@
 transport-archive
 transport-archive-airgap
 ctf
+sboms
 
 # dev-kit
 common.mk

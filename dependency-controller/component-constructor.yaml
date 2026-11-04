@@ -17,11 +17,11 @@ components:
       # Helm Chart
       - name: dependency-controller-chart
         type: helmChart
-        version: "0.5.0"
+        version: "0.5.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/charts/dependency-controller:0.5.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/charts/dependency-controller:0.5.2@sha256:ab3774bb5d80482f7c398932e6d7bc5bbbdf7f395770acfb65391c4588aa2ec0
       # Values template, rendered by ocm-kit: the label links it to the chart,
       # and the image references it emits are the localized ones after transfer.
       - name: dependency-controller-chart-values-template
@@ -32,36 +32,105 @@ components:
             value: dependency-controller-chart
         relation: local
         input:
-          type: file
+          type: File/v1
           path: values.yaml.tpl
 
       # Controller Image
       - name: dependency-controller-image
         type: ociImage
-        version: "0.5.0"
+        version: "0.5.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/dependency-controller:0.5.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/dependency-controller:0.5.2@sha256:50efcb604beb9ee600e29abdc3799af7aa3a2504d684fad4436be797b24c5730
       # Admission Webhook Image
       - name: dependency-webhook-image
         type: ociImage
-        version: "0.5.0"
+        version: "0.5.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/dependency-webhook:0.5.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/dependency-webhook:0.5.2@sha256:3819de1099e9505e11cfc30f44ef296f406cd5939024346241116206868e5096
+      # SBOMs: CycloneDX per image and platform, published by the upstream
+      # release. The label links each to its image and is covered by the
+      # signature, and it takes precedence over the BuildKit attestation in the
+      # image index. The URL follows ${OCM_VERSION}, so a Renovate bump moves the
+      # SBOMs along — and a release without them fails `make validate`.
+      - name: dependency-controller-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: amd64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: dependency-controller-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/dependency-controller/releases/download/v${OCM_VERSION}/dependency-controller-linux-amd64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: dependency-controller-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: arm64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: dependency-controller-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/dependency-controller/releases/download/v${OCM_VERSION}/dependency-controller-linux-arm64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: dependency-webhook-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: amd64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: dependency-webhook-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/dependency-controller/releases/download/v${OCM_VERSION}/dependency-webhook-linux-amd64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: dependency-webhook-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: arm64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: dependency-webhook-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/dependency-controller/releases/download/v${OCM_VERSION}/dependency-webhook-linux-arm64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
       # Minimal Configuration (single instance, development/testing)
       - name: dependency-controller-minimal-config
         type: yaml
         relation: local
         input:
-          type: file
+          type: File/v1
           path: minimal-values.yaml
       # Production Configuration (HA, cert-manager TLS, anti-affinity)
       - name: dependency-controller-production-config
         type: yaml
         relation: local
         input:
-          type: file
+          type: File/v1
           path: production-values.yaml

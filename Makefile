@@ -27,11 +27,17 @@ endif
 # dev-kit's ocm rule installs the legacy v1 CLI, so v2 is installed here.
 # The release binary is fetched directly and its GitHub build attestation is
 # verified before it is installed — no piped installer script.
-OCM_CLI_VERSION := 0.15.0
+OCM_CLI_VERSION := 0.22.1
 OCM_REPO        := open-component-model/open-component-model
 OCM_OS          := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 OCM_ARCH        := $(shell uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
 OCM := $(LOCALBIN)/ocm
+
+# Same as common.mk above: an existing binary is never rebuilt, so a version
+# bump would keep running the old CLI unless the stale one is dropped first.
+ifneq ($(shell cat $(LOCALBIN)/.ocm-version 2>/dev/null),$(OCM_CLI_VERSION))
+$(shell rm -f $(OCM))
+endif
 
 $(OCM): $(LOCALBIN)
 	@test -s $@ && grep -q "$(OCM_CLI_VERSION)" $(LOCALBIN)/.ocm-version 2>/dev/null && exit 0; \
@@ -51,6 +57,9 @@ REGISTRY  ?= ghcr.io/opendefensecloud
 CONSTRUCTOR    = $(COMPONENT)/component-constructor.yaml
 COMPONENT_NAME = opendefense.cloud/$(COMPONENT)
 CTF            = ./transport-archive
+# --config replaces the .ocmconfig lookup instead of merging, so the credentials
+# are passed again in front of the by-value uploader.
+AIRGAP_CONFIG  = --config .ocmconfig --config airgap.ocmconfig
 
 # Derived from the wrapped chart: chart 0.4.0 -> component 0.4.0. See README.
 OCM_VERSION ?= $(shell yq -r '[.components[0].resources[] | select(.type == "helmChart") | .version] | .[0] // ""' $(CONSTRUCTOR) 2>/dev/null)
@@ -75,7 +84,6 @@ version: _require-version ## Print the version derived from the wrapped chart
 
 .PHONY: validate
 validate: _require-version $(OCM) ## Build COMPONENT into a throwaway CTF. Publishes nothing.
-    # No -o flag: every output mode crashes on OCI access types in 0.15.0.
 	@d=$$(mktemp -d) && trap 'rm -rf "$$d"' EXIT && \
 	OCM_VERSION=$(OCM_VERSION) $(OCM) add component-version \
 		--constructor $(CONSTRUCTOR) --repository "ctf::$$d/ctf"
@@ -89,14 +97,13 @@ build: _require-version $(OCM) ## Build COMPONENT into ./transport-archive
 .PHONY: airgap
 airgap: _require-version build ## Self-contained by-value CTF bundle
 	rm -rf ./transport-archive-airgap
-    # --upload-as omitted: no-op against a CTF target.
-	$(OCM) transfer component-version \
+	$(OCM) transfer component-version $(AIRGAP_CONFIG) \
 		"ctf::$(CTF)//$(COMPONENT_NAME):$(OCM_VERSION)" \
-		ctf::./transport-archive-airgap \
-		--copy-resources --recursive
+		ctf::./transport-archive-airgap --recursive
 
-# Descriptor-only. For by-value add --copy-resources --recursive --upload-as
-# ociArtifact — that flag is required and is NOT the default. See README.
+# Descriptor-only: without an uploader config, resources stay by reference.
+# By-value needs oci.uploader.transfer.config.ocm.software/v1alpha1 — the
+# localblob uploader in airgap.ocmconfig would leave the chart un-pullable.
 .PHONY: publish
 publish: _require-version build ## Push the COMPONENT descriptor into REGISTRY (resources stay by reference)
 	$(OCM) transfer component-version \
@@ -116,8 +123,7 @@ sign: _require-version $(OCM) ## Sign the published component (Sigstore keyless)
 .PHONY: verify
 verify: _require-version $(OCM) ## Verify the signature and the signer identity
 	$(OCM) verify component-version \
-		"$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" --signature opendefense.cloud \
-		--verifier-spec sigstore-verify.yaml
+		"$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" --signature opendefense.cloud
 
 # --dry-run validates the whole graph without moving the ~53 MB.
 # Record only; nothing triggers off it. Idempotent.
@@ -132,5 +138,14 @@ tag: _require-version ## Create the release tag for COMPONENT
 resolve-check: _require-version $(OCM) ## Assert a consumer can resolve everything
 	$(OCM) transfer component-version \
 		"$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" \
-		"ctf::$$(mktemp -d)/probe" \
-		--copy-resources --recursive --dry-run   # dry-run writes nothing
+		"ctf::$$(mktemp -d)/probe" $(AIRGAP_CONFIG) \
+		--recursive --dry-run   # dry-run writes nothing
+
+# Uses a linked `type: sbom` resource if the constructor has one, otherwise the
+# BuildKit attestation in the image index. Fails for an image with neither.
+.PHONY: sbom
+sbom: _require-version $(OCM) ## Download the SBOMs of every COMPONENT image into ./sboms
+	@for r in $$(yq -r '.components[0].resources[] | select(.type == "ociImage") | .name' $(CONSTRUCTOR)); do \
+		$(OCM) download resource "$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" \
+			--identity name=$$r --sbom --output ./sboms/$(COMPONENT)/$$r || exit 1; \
+	done

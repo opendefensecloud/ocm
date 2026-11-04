@@ -1,0 +1,6 @@
+# By-value bundle: every resource is copied into the target as a local blob.
+# Kept out of .ocmconfig, which the CLI merges into every call — there it
+# would turn `make publish` into a by-value upload.
+type: generic.config.ocm.software/v1
+configurations:
+  - type: localblob.uploader.transfer.config.ocm.software/v1alpha1

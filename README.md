@@ -37,8 +37,8 @@ One directory per component, discovered automatically:
 └── README.md
 ```
 
-Everything else is shared: `Makefile` (all commands), `.ocmconfig` (credentials
-and signer), `sigstore-verify.yaml` (verifier), `renovate.json` (version bumps),
+Everything else is shared: `Makefile` (all commands), `.ocmconfig` (credentials,
+signer and verifier), `airgap.ocmconfig` (by-value uploader), `renovate.json` (version bumps),
 `.github/workflows/` (release, Scorecard, commit and workflow linting).
 
 ## Adding a component
@@ -66,13 +66,21 @@ from the wrapped chart. The Makefile pulls `common.mk` from
 charts stay as references to where they already live in ghcr. Copying them by
 value would duplicate bytes inside the same registry.
 
-Consumers build their own self-contained bundle when they need one:
+Consumers build their own self-contained bundle when they need one (`make
+airgap` does the same from a local build):
 
 ```bash
-ocm transfer component-version \
+ocm transfer component-version --config .ocmconfig --config airgap.ocmconfig \
   ghcr.io/opendefensecloud//opendefense.cloud/dependency-controller:<version> \
-  ctf::./bundle --copy-resources --recursive
+  ctf::./bundle --recursive
 ```
+
+`airgap.ocmconfig` holds a `localblob` uploader, which copies every resource
+into the bundle. It must not go into `.ocmconfig`: the CLI merges that file
+into every call, so `make publish` would turn into a by-value upload. `--config`
+*replaces* the `.ocmconfig` lookup rather than adding to it, so pass
+`.ocmconfig` explicitly. Otherwise the credentials are gone. The
+`--copy-resources`/`--upload-as` flags are deprecated since CLI 0.21.
 
 A dangling reference cannot be published: OCM resolves every external resource
 at build time to compute its digest, so `make validate` already fails if a
@@ -82,6 +90,29 @@ graph after publishing.
 Published paths keep the source image path under the target repository, so the
 chart lands at `<REGISTRY>/opendefensecloud/charts/<component>`. The doubled
 `opendefensecloud` is expected.
+
+## SBOMs
+
+SBOMs are `type: sbom` resources in the constructor, one per image and
+platform, linked to their image by the `ocm.software/artifact-references` label
+([ocm-project#1225](https://github.com/open-component-model/ocm-project/issues/1225)).
+The label is `signing: true`, and the resource digest is in the descriptor, so the
+signature covers both the link and the SBOM content.
+
+The documents are the CycloneDX release assets of the upstream release, fetched
+with `Wget/v1`. The URL uses `${OCM_VERSION}`, so a Renovate bump moves the
+SBOMs along. This assumes the image and chart versions match. An upstream release without them fails `make validate`, so they
+cannot be dropped silently.
+
+```bash
+make sbom COMPONENT=<name>       # SBOMs of every image into ./sboms
+```
+
+`ocm download resource --sbom` prefers a linked resource. Without one, it falls back
+to the BuildKit SPDX attestation in the image index. Both survive `make airgap`.
+
+Every component links SBOMs for each of its images. Charts get none: they
+contain no binaries.
 
 ## Releasing
 
@@ -121,19 +152,11 @@ The signature is stored *inside the component descriptor*, not as a separate
 registry artifact, so GitHub's package page shows no signature badge. Check it
 with `make verify`.
 
-Configuration is split across two files, and the split is not obvious:
-
-| File | Holds |
-| --- | --- |
-| `.ocmconfig` | registry credentials, and the **signer** |
-| `sigstore-verify.yaml` | the **verifier** — passed via `--verifier-spec` |
+`.ocmconfig` holds the registry credentials, the **signer**, and the
+**verifier**. CLI 0.21 removed `--verifier-spec`. Earlier versions ignored a
+`verifier:` key in the config, so older docs tell you the opposite.
 
 > [!WARNING]
-> A `verifier:` key inside `.ocmconfig` is **silently ignored**. `ocm verify`
-> logs *"no verifier specification file given, using default RSASSA-PSS"* and
-> then fails on the Sigstore bundle's media type. The verifier must be its own
-> file.
->
 > Registry credentials are likewise **not** optional: without an explicit
 > `DockerConfig/v1` entry OCM requests a push token anonymously and ghcr answers
 > `403`. A public *pull* works either way, which makes the omission easy to miss.
@@ -142,7 +165,7 @@ Verification pins *who* may have signed — without both constraints a keyless
 signature proves only that somebody signed:
 
 ```yaml
-# sigstore-verify.yaml
+# .ocmconfig, signing.config.ocm.software/v1alpha1 → verifier
 certificateOIDCIssuer: https://token.actions.githubusercontent.com
 certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
 ```
@@ -153,8 +176,8 @@ Resolvers are not configured — no component declares `componentReferences`.
 
 ## Migrating from the v1 repositories
 
-OCM v2 changes enough that v1 commands do not carry over — `--output` crashes on
-OCI resources, `--upload-as` defaults the wrong way, `--version` is gone, and v2
+OCM v2 changes enough that v1 commands do not carry over — resource copying is
+an uploader config instead of a flag, `--version` is gone, and v2
 signatures do not verify with v1 tooling. The measured list is in
 [CLAUDE.md](CLAUDE.md#ocm-v2-vs-v1--traps-that-cost-real-time).
 
@@ -169,5 +192,5 @@ chart keeps the licence of the project that produces it; see the component's
 
 Publishing here is descriptor-only, so this repository redistributes no
 third-party artifacts — it references them where they already live. A consumer
-who builds a by-value bundle (`transfer --copy-resources`) does redistribute
+who builds a by-value bundle (`make airgap`) does redistribute
 them, and the upstream licences apply to that copy.

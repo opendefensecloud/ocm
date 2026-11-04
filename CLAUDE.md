@@ -97,7 +97,10 @@ see the traps table.
 
 **Descriptor-only** — `make publish` pushes the descriptor; images and charts
 stay as references to where they already live in ghcr. Consumers build their own
-self-contained bundle with `transfer --copy-resources --recursive`.
+self-contained bundle with `transfer --config .ocmconfig --config
+airgap.ocmconfig --recursive` (`make airgap`). `--config` *replaces* the
+`.ocmconfig` lookup, so it has to be named again or the credentials are lost. **Never put an uploader into `.ocmconfig`** — the CLI merges it
+into every call, which would make `make publish` upload by value.
 
 A dangling reference cannot be published: OCM resolves every external resource
 at build time to compute its digest, so `make validate` fails if a wrapped
@@ -107,28 +110,31 @@ artifact is missing.
 
 Sigstore keyless via ambient GitHub OIDC. **There are no signing secrets.**
 `.ocmconfig` carries the registry credentials and selects the Sigstore signer
-over the RSA default. The **verifier lives in `sigstore-verify.yaml`** and is
-passed with `--verifier-spec`; a `verifier:` key in `.ocmconfig` is silently
-ignored. Signing does not work offline.
+over the RSA default, and holds the **verifier** (signer identity pinned).
+Signing does not work offline.
 
 The signature is stored inside the component descriptor, not as a registry
 artifact — there is nothing for GitHub's package UI to display.
 
 ## OCM v2 vs v1 — traps that cost real time
 
-Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
+Measured against v1 0.42.0 and v2 0.15.0, re-checked on 0.21.0. Do not
+rediscover these:
 
 | | |
 |---|---|
-| `--output` | Every `-o` mode crashes `ocm add component-version` on OCI access types (`cannot encode from unregistered type: ociArtifact`). Also fails with `OCIImage/v1`, so it is the serializer. Pass no `-o`. |
-| `--upload-as` | Required for a by-value publish and **not** the default. v2 defaults to `localBlob`, which writes only the descriptor repository and leaves the chart un-pullable. v1 promoted resources by default — the defaults are inverted. |
+| `--output` | Crashed `ocm add component-version` on OCI access types up to 0.15.0. Works in 0.21.0 — v1 docs citing this as the reason to stay on the legacy CLI are outdated. |
+| copying resources | `--copy-resources`/`--upload-as` are deprecated in 0.21.0. Copying is configured with uploader entries (`localblob.`/`oci.`/`reference.uploader.transfer.config.ocm.software/v1alpha1`, first CEL `match` wins). Without one, non-local resources stay by reference. `localblob` writes only the descriptor repository and leaves the chart un-pullable; a by-value **publish** needs `oci`. v1 promoted resources by default — the defaults are inverted. |
+| type names | 0.22 warns on aliases: use `OCIImage/v1` (not `ociArtifact`) and `File/v1` (not `file`). The descriptor stores the name as written. Consumers on the v1 library (ocm-kit, solution-arsenal, both `ocm.software/ocm` 0.53) decode `OCIImage/v1` to the same `ociartifact.AccessSpec`. |
 | `${VAR}` | Expanded natively via `os.Expand`; v1's `--addenv`/envsubst is gone. **An unset variable becomes `""` silently**, yielding `version: ""` rather than an error. |
 | `--version` | Gone. v2 takes the version from the constructor, which is why constructors here carry `version: ${OCM_VERSION}` and ocm-components' do not. |
 | signing keys | No `--private-key` flag. The signer lives in `signing.config.ocm.software/v1alpha1`; keys come from the credentials graph. |
 | normalisation | v2 uses `jsonNormalisation/v4alpha1` + RSASSA-PSS. **v2 signatures do not verify with v1 tooling.** |
 | resolvers | `ocm.config.ocm.software/v1` with `prefix`/`priority` is deprecated. Use `resolvers.config.ocm.software/v1alpha1` with `componentNamePattern` globs — first match wins, no fallback. |
 | `ocm-setup-action` | v1-only; cannot resolve v2 release assets. |
-| verifier spec | The `verifier:` key inside `signing.config.ocm.software/v1alpha1` is **silently ignored**. `ocm verify` logs "no verifier specification file given, using default RSASSA-PSS" and then fails on the Sigstore bundle's media type. The verifier must be a separate file passed with `--verifier-spec`; only the `signer:` is read from the config. |
+| verifier spec | **Flipped in 0.21.0.** `--verifier-spec` now fails with an error; the verifier is the `verifier:` key in `signing.config.ocm.software/v1alpha1`. Up to 0.15.0 that key was silently ignored and the flag was required. |
+| SBOMs | `ocm download resource --sbom` (≥ 0.17, experimental). It discovers BuildKit in-index attestations only — not cosign or referrers. A `type: sbom` resource with an `ocm.software/artifact-references` label takes **precedence** over the attestation. |
+| `make setup` after a bump | Did not reinstall: make never rebuilds an existing file. The Makefile now drops a binary whose `.ocm-version` differs. |
 | docker credentials | OCM does **not** find `~/.docker/config.json` on its own for pushes. Without an explicit `DockerConfig/v1` credentials entry it requests a push token anonymously and ghcr answers 403. A public *pull* works either way, which makes the omission easy to miss. |
 | `sources` | **Not covered by the signature.** Measured: two builds differing only in the source commit produce an identical signed digest, and the constructor warns `source content is recorded without a digest and is not verifiable`. Use a resource if it must be signed. |
 | source access types | **Not validated at all** — `totalerUnsinn/v9` builds fine. The registered type is `GitHub/v1`; the lowercase `gitHub` is a v1 alias. A typo here is silent. |
@@ -147,10 +153,17 @@ Measured against v1 0.42.0 and v2 0.15.0. Do not rediscover these:
 - Renovate maintains the wrapped versions through jsonata managers over
   `component-constructor.yaml`; do not add `# renovate:` annotations. Six things
   differ from the shared config and are load-bearing:
-  - a manager for charts published as `ociArtifact` — the ocm-components one only
-    matches `access.type: helm` and would never bump ours;
-  - `pinDigests: false` inside constructors — a digest suffix breaks the
-    manager's `$split` on `:`;
+  - a manager for charts with `access.type: OCIImage/v1` — the ocm-components
+    one only matches `access.type: helm` and would never bump ours. It matches
+    the literal string, so switching a constructor back to the `ociArtifact`
+    alias silently stops chart bumps;
+  - every image and chart is pinned as `repo:tag@sha256:…`. The managers split on
+    `@` before `:` and emit `currentDigest`, so a bump rewrites tag and digest
+    together. `pinDigests` stays `false`: it would try to pin the bare `version:`
+    field. Upstream tags *do* move (v0.5.1 was pushed twice, by the tag push and
+    again by `release: published`, with identical layers but a new `created`
+    label; fixed upstream from 0.5.2/0.1.2), so the pin is what keeps a build
+    reproducible;
   - a manager for `OCM_CLI_VERSION` in the Makefile — the shared preset's
     `tools.lock` manager tracks the v1 CLI;
   - `allowedVersions` restricting constructors to unprefixed versions — the image
@@ -178,6 +191,3 @@ Recorded so they are not mistaken for oversights:
   carry a template and no RGD.
 - **Per-component tests on kind.** ocm-components' CLAUDE.md requires them; no
   component here has any.
-- **SBOM resources.** Deliberate — the wrapped images already carry SBOM
-  attestations that survive transfer, and the explicit-attachment contract is an
-  open spec PR. See the SBOM section in `README.md` before adding one.
