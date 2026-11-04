@@ -17,11 +17,11 @@ components:
       # Helm Chart
       - name: quota-controller-chart
         type: helmChart
-        version: "0.1.0"
+        version: "0.1.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/charts/quota-controller:0.1.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/charts/quota-controller:0.1.2@sha256:352428770a918591f76082bbfad16c3791ed20648863bf3acb6b1a1507a0f940
       # Values template, rendered by ocm-kit: the label links it to the chart,
       # and the image references it emits are the localized ones after transfer.
       - name: quota-controller-chart-values-template
@@ -31,36 +31,105 @@ components:
             value: quota-controller-chart
         relation: local
         input:
-          type: file
+          type: File/v1
           path: values.yaml.tpl
 
       # Controller Image
       - name: quota-controller-image
         type: ociImage
-        version: "0.1.0"
+        version: "0.1.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/quota-controller:0.1.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/quota-controller:0.1.2@sha256:1d5b1af940a0a0b02a6ee5a09aa5f982cce3b994213cba3a31af0d8b4314ed74
       # Admission Webhook Image
       - name: quota-webhook-image
         type: ociImage
-        version: "0.1.0"
+        version: "0.1.2"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: ghcr.io/opendefensecloud/quota-webhook:0.1.0
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/quota-webhook:0.1.2@sha256:612bf0f589e231b1c23547d3e2c09e321502891342cd3084f1234c5b85a43c48
+      # SBOMs: CycloneDX per image and platform, published by the upstream
+      # release. The label links each to its image and is covered by the
+      # signature, and it takes precedence over the BuildKit attestation in the
+      # image index. The URL follows ${OCM_VERSION}, so a Renovate bump moves the
+      # SBOMs along — and a release without them fails `make validate`.
+      - name: quota-controller-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: amd64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: quota-controller-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/quota-controller/releases/download/v${OCM_VERSION}/quota-controller-linux-amd64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: quota-controller-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: arm64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: quota-controller-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/quota-controller/releases/download/v${OCM_VERSION}/quota-controller-linux-arm64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: quota-webhook-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: amd64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: quota-webhook-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/quota-controller/releases/download/v${OCM_VERSION}/quota-webhook-linux-amd64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
+      - name: quota-webhook-image-sbom
+        type: sbom
+        version: ${OCM_VERSION}
+        extraIdentity:
+          architecture: arm64
+        labels:
+          - name: ocm.software/artifact-references
+            signing: true
+            value:
+              - identity:
+                  name: quota-webhook-image
+        relation: external
+        access:
+          type: Wget/v1
+          url: https://github.com/opendefensecloud/quota-controller/releases/download/v${OCM_VERSION}/quota-webhook-linux-arm64.cyclonedx.json
+          mediaType: application/vnd.cyclonedx+json
       # Minimal Configuration (single instance, development/testing)
       - name: quota-controller-minimal-config
         type: yaml
         relation: local
         input:
-          type: file
+          type: File/v1
           path: minimal-values.yaml
       # Production Configuration (HA, cert-manager TLS, anti-affinity)
       - name: quota-controller-production-config
         type: yaml
         relation: local
         input:
-          type: file
+          type: File/v1
           path: production-values.yaml
