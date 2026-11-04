@@ -12,21 +12,21 @@
         "/.*/component-constructor.yaml$/"
       ],
       "matchStrings": [
-        "components.resources[type = 'ociImage'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': $split(access.imageReference, ':')[1]}",
-        "components.resources[type = 'ociImage'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': version}"
+        "components.resources[type = 'ociImage'].{'depName': $split($split(access.imageReference, '@')[0], ':')[0], 'currentValue': $split($split(access.imageReference, '@')[0], ':')[1], 'currentDigest': $split(access.imageReference, '@')[1]}",
+        "components.resources[type = 'ociImage'].{'depName': $split($split(access.imageReference, '@')[0], ':')[0], 'currentValue': version}"
       ],
       "datasourceTemplate": "docker"
     },
     {
-      "description": "Helm charts published as OCI artifacts. The ocm-components manager only covers access.type 'helm' (helmChart + helmRepository); charts pushed to ghcr use access.type 'ociArtifact' with an imageReference and would otherwise never be bumped.",
+      "description": "Helm charts published as OCI artifacts. The ocm-components manager only covers access.type 'helm' (helmChart + helmRepository); charts pushed to ghcr use access.type 'OCIImage/v1' (formerly 'ociArtifact') with an imageReference and would otherwise never be bumped.",
       "customType": "jsonata",
       "fileFormat": "yaml",
       "managerFilePatterns": [
         "/.*/component-constructor.yaml$/"
       ],
       "matchStrings": [
-        "components.resources[type = 'helmChart' and access.type = 'ociArtifact'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': $split(access.imageReference, ':')[1]}",
-        "components.resources[type = 'helmChart' and access.type = 'ociArtifact'].{'depName': $split(access.imageReference, ':')[0], 'currentValue': version}"
+        "components.resources[type = 'helmChart' and access.type = 'OCIImage/v1'].{'depName': $split($split(access.imageReference, '@')[0], ':')[0], 'currentValue': $split($split(access.imageReference, '@')[0], ':')[1], 'currentDigest': $split(access.imageReference, '@')[1]}",
+        "components.resources[type = 'helmChart' and access.type = 'OCIImage/v1'].{'depName': $split($split(access.imageReference, '@')[0], ':')[0], 'currentValue': version}"
       ],
       "datasourceTemplate": "docker"
     },
@@ -54,7 +54,7 @@
       "allowedVersions": "/^\\d+\\.\\d+\\.\\d+$/"
     },
     {
-      "description": "Never pin digests inside a component-constructor. The shared preset sets pinDigests globally, but a digest suffix turns 'repo:tag' into 'repo:tag@sha256:...', which breaks the jsonata $split on ':' above. OCM resolves and records digests at build time anyway.",
+      "description": "Constructors pin every image and chart as 'repo:tag@sha256:...'. The managers above split the reference on '@' first, so tag and digest are extracted separately and a version bump rewrites both. pinDigests stays off: it would try to add a digest to the bare 'version:' field the second matchString tracks.",
       "matchFileNames": [
         "**/component-constructor.yaml"
       ],
