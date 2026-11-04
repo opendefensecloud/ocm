@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/arc
+    # v2 has no --version flag; the value comes from the environment. An unset
+    # variable expands to "" silently, so the Makefile guards it.
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: artifact-conduit
+      - name: app.kubernetes.io/component
+        value: artifact-gateway
+      - name: app.kubernetes.io/part-of
+        value: artifact-conduit
+    resources:
+      # Artifact Conduit (ARC) Helm Chart
+      - name: arc-chart
+        type: helmChart
+        version: v0.3.2
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/charts/arc:v0.3.2
+
+      - name: arc-chart-values-template
+        type: yaml
+        version: v0.3.2
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: arc-chart
+        relation: local
+        input:
+          type: File/v1
+          path: values.yaml.tpl
+          mediaType: application/yaml
+
+      # API Server Container Image
+      - name: arc-apiserver-image
+        type: ociImage
+        version: 0.3.2
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/arc-apiserver:0.3.2
+
+      # Controller Manager Container Image
+      - name: arc-controller-manager-image
+        type: ociImage
+        version: 0.3.2
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/arc-controller-manager:0.3.2
+
+      # etcd Container Image
+      - name: etcd-image
+        type: ociImage
+        version: v3.6.11
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: quay.io/coreos/etcd:v3.6.11
+
+      # Minimal Configuration (Single instance, development)
+      - name: arc-minimal-config
+        type: yaml
+        relation: local
+        input:
+          type: File/v1
+          path: minimal-values.yaml
+          mediaType: application/yaml
+
+      # Production Configuration (HA with replicas)
+      - name: arc-production-config
+        type: yaml
+        relation: local
+        input:
+          type: File/v1
+          path: production-values.yaml
+          mediaType: application/yaml

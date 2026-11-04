@@ -47,11 +47,24 @@
   ],
   "packageRules": [
     {
-      "description": "The image repositories publish both 0.5.0 and v0.5.0 for the same release; the chart repository only publishes unprefixed tags. Without this, Renovate picks the v-prefixed image tags and a component ends up mixing both formats. Constrain every constructor dependency to the unprefixed scheme — the common denominator.",
+      "description": "The image repositories publish both 0.5.0 and v0.5.0 for the same release; the chart repository only publishes unprefixed tags. Without this, Renovate picks the v-prefixed image tags and a component ends up mixing both formats. Constrain every opendefensecloud dependency to the unprefixed scheme — the common denominator.",
       "matchFileNames": [
         "**/component-constructor.yaml"
       ],
+      "matchDepNames": [
+        "/^ghcr\\.io/opendefensecloud//"
+      ],
       "allowedVersions": "/^\\d+\\.\\d+\\.\\d+$/"
+    },
+    {
+      "description": "Exception to the rule above: ARC's chart repository has published only v-prefixed tags since v0.2.1, so the unprefixed constraint would freeze it. Third-party dependencies (fluxcd, argoproj, coreos, project-zot) are not constrained at all; they publish one scheme each, mostly v-prefixed, and the rule above would freeze them too.",
+      "matchFileNames": [
+        "artifact-conduit/component-constructor.yaml"
+      ],
+      "matchDepNames": [
+        "ghcr.io/opendefensecloud/charts/arc"
+      ],
+      "allowedVersions": "/^v\\d+\\.\\d+\\.\\d+$/"
     },
     {
       "description": "Constructors pin every image and chart as 'repo:tag@sha256:...'. The managers above split the reference on '@' first, so tag and digest are extracted separately and a version bump rewrites both. pinDigests stays off: it would try to add a digest to the bare 'version:' field the second matchString tracks.",

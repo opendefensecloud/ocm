@@ -36,7 +36,9 @@ Flat, one directory per component, uniform:
 substitutes the *localized* image references after a transfer. Consumed by
 `oscp` and `solution-arsenal` — not an RGD concern.
 
-All components use the OCM name prefix `opendefense.cloud/<component>`.
+All components use the OCM name prefix `opendefense.cloud/`. The Makefile reads
+the name from the constructor, not the directory: `artifact-conduit/` publishes
+as `opendefense.cloud/arc`.
 
 **Adding a component needs no registration.** The release workflow discovers
 every directory containing a `component-constructor.yaml`. Do not add a matrix
@@ -123,9 +125,10 @@ rediscover these:
 
 | | |
 |---|---|
-| `--output` | Crashed `ocm add component-version` on OCI access types up to 0.15.0. Works in 0.21.0 — v1 docs citing this as the reason to stay on the legacy CLI are outdated. |
+| `--output` | Crashed `ocm add component-version` on OCI access types up to 0.15.0. Works in 0.21.0 — v1 docs citing this as the reason to stay on the legacy CLI are outdated. `ocm get cv -o yaml` returns a **list**, so read `.[0].component`. |
 | copying resources | `--copy-resources`/`--upload-as` are deprecated in 0.21.0. Copying is configured with uploader entries (`localblob.`/`oci.`/`reference.uploader.transfer.config.ocm.software/v1alpha1`, first CEL `match` wins). Without one, non-local resources stay by reference. `localblob` writes only the descriptor repository and leaves the chart un-pullable; a by-value **publish** needs `oci`. v1 promoted resources by default — the defaults are inverted. |
 | type names | 0.22 warns on aliases: use `OCIImage/v1` (not `ociArtifact`) and `File/v1` (not `file`). The descriptor stores the name as written. Consumers on the v1 library (ocm-kit, solution-arsenal, both `ocm.software/ocm` 0.53) decode `OCIImage/v1` to the same `ociartifact.AccessSpec`. |
+| file `mediaType` | A `File/v1` input without `mediaType` is sniffed as `text/plain; charset=utf-8`. That string ends up as an OCI layer media type, which the OCI spec forbids (no parameters), and a strict registry such as zot rejects the manifest. Every file input sets `mediaType: application/yaml`. |
 | `${VAR}` | Expanded natively via `os.Expand`; v1's `--addenv`/envsubst is gone. **An unset variable becomes `""` silently**, yielding `version: ""` rather than an error. |
 | `--version` | Gone. v2 takes the version from the constructor, which is why constructors here carry `version: ${OCM_VERSION}` and ocm-components' do not. |
 | signing keys | No `--private-key` flag. The signer lives in `signing.config.ocm.software/v1alpha1`; keys come from the credentials graph. |
@@ -166,9 +169,13 @@ rediscover these:
     reproducible;
   - a manager for `OCM_CLI_VERSION` in the Makefile — the shared preset's
     `tools.lock` manager tracks the v1 CLI;
-  - `allowedVersions` restricting constructors to unprefixed versions — the image
-    repositories publish both `0.5.0` and `v0.5.0`, the chart repository only the
-    former, so without it a component mixes both formats;
+  - `allowedVersions` restricting `ghcr.io/opendefensecloud` dependencies to
+    unprefixed versions — those image repositories publish both `0.5.0` and
+    `v0.5.0`, the chart repository only the former, so without it a component
+    mixes both formats. Scoped to our own org on purpose: fluxcd, argoproj,
+    coreos and project-zot tag `v…` only, and an unscoped rule froze them
+    (measured with a lookup dry run). ARC's chart is the exception, tagged
+    `v…` only since v0.2.1, and has its own rule;
   - `groupName`/`groupSlug` set to `{{parentDir}}` — one PR per component. The
     shared preset puts every minor update into a single branch, which would
     publish two components off one merge. **Both** keys are required: the preset

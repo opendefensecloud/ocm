@@ -55,14 +55,18 @@ COMPONENT ?= dependency-controller
 REGISTRY  ?= ghcr.io/opendefensecloud
 
 CONSTRUCTOR    = $(COMPONENT)/component-constructor.yaml
-COMPONENT_NAME = opendefense.cloud/$(COMPONENT)
+# Read from the constructor rather than derived from the directory:
+# artifact-conduit/ publishes as opendefense.cloud/arc.
+COMPONENT_NAME = $(shell yq -r '.components[0].name' $(CONSTRUCTOR) 2>/dev/null)
 CTF            = ./transport-archive
 # --config replaces the .ocmconfig lookup instead of merging, so the credentials
 # are passed again in front of the by-value uploader.
 AIRGAP_CONFIG  = --config .ocmconfig --config airgap.ocmconfig
 
+
 # Derived from the wrapped chart: chart 0.4.0 -> component 0.4.0. See README.
-OCM_VERSION ?= $(shell yq -r '[.components[0].resources[] | select(.type == "helmChart") | .version] | .[0] // ""' $(CONSTRUCTOR) 2>/dev/null)
+# A v prefix on the chart tag is dropped, so arc's chart v0.2.2 -> component 0.2.2.
+OCM_VERSION ?= $(patsubst v%,%,$(shell yq -r '[.components[0].resources[] | select(.type == "helmChart") | .version] | .[0] // ""' $(CONSTRUCTOR) 2>/dev/null))
 
 .PHONY: _require-version
 _require-version:
@@ -149,3 +153,17 @@ sbom: _require-version $(OCM) ## Download the SBOMs of every COMPONENT image int
 		$(OCM) download resource "$(REGISTRY)//$(COMPONENT_NAME):$(OCM_VERSION)" \
 			--identity name=$$r --sbom --output ./sboms/$(COMPONENT)/$$r || exit 1; \
 	done
+
+# A transfer stores an artifact at <target>/<path without host>, so two sources
+# differing only in host would overwrite each other. Static check over every
+# constructor, no registry needed.
+CONSTRUCTORS ?= $(wildcard */component-constructor.yaml)
+
+.PHONY: lint-constructors
+lint-constructors: ## Check all constructors for image path collisions
+	@bad=$$(for f in $(CONSTRUCTORS); do yq '.' "$$f" >/dev/null || echo "$$f: cannot be parsed"; done; \
+	for f in $(CONSTRUCTORS); do yq -r '.components[].resources[] | select(.access.imageReference) | .access.imageReference' "$$f" 2>/dev/null; done \
+	| sed 's/@.*//' | sort -u | awk '{ i = index($$0, "/"); p = substr($$0, i + 1); h = substr($$0, 1, i - 1); \
+		if ((p in host) && host[p] != h) print p ": from both " host[p] " and " h; host[p] = h }'); \
+	[ -z "$$bad" ] || { echo "$$bad" | sed 's/^/error: /' >&2; exit 1; }; \
+	echo "$(words $(CONSTRUCTORS)) constructors OK"

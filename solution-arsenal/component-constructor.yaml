@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/solution-arsenal
+    # v2 has no --version flag; the value comes from the environment. An unset
+    # variable expands to "" silently, so the Makefile guards it.
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: solution-arsenal
+      - name: app.kubernetes.io/component
+        value: solution-catalog
+      - name: app.kubernetes.io/part-of
+        value: solution-arsenal
+    resources:
+      # SolutionArsenal Helm Chart
+      - name: solution-arsenal-chart
+        type: helmChart
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/charts/solar:0.4.0
+
+      # Helm Values Template for SolutionArsenal Helm Chart
+      - name: solution-arsenal-helm-values-template
+        type: yaml
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: solution-arsenal-chart
+        relation: local
+        input:
+          type: File/v1
+          path: values.yaml.tpl
+          mediaType: application/yaml
+
+      # API Server Container Image
+      - name: solution-arsenal-apiserver-image
+        type: ociImage
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/solar-apiserver:0.4.0
+
+      # Controller Manager Container Image
+      - name: solution-arsenal-controller-manager-image
+        type: ociImage
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/solar-controller-manager:0.4.0
+
+      # Renderer Container Image
+      - name: solution-arsenal-renderer-image
+        type: ociImage
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/solar-renderer:0.4.0
+
+      # Web UI (BFF + React SPA) Container Image
+      - name: solution-arsenal-ui-image
+        type: ociImage
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/solar-ui:0.4.0
+
+      # etcd Container Image
+      - name: etcd-image
+        type: ociImage
+        version: v3.6.11
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: quay.io/coreos/etcd:v3.6.11
+
+      # Minimal Configuration (single instance, development)
+      - name: solution-arsenal-minimal-config
+        type: yaml
+        relation: local
+        input:
+          type: File/v1
+          path: minimal-values.yaml
+          mediaType: application/yaml
+
+      # Production Configuration (HA with replicas, metrics enabled)
+      - name: solution-arsenal-production-config
+        type: yaml
+        relation: local
+        input:
+          type: File/v1
+          path: production-values.yaml
+          mediaType: application/yaml

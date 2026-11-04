@@ -23,6 +23,12 @@ from their own source repositories.
 | `opendefense.cloud/dependency-controller` | controller + webhook images, Helm chart | [README](dependency-controller/README.md) |
 | `opendefense.cloud/quota-controller` | controller + webhook images, Helm chart | [README](quota-controller/README.md) |
 | `opendefense.cloud/krop-controller` | controller image, Helm chart | [README](krop-controller/README.md) |
+| `opendefense.cloud/solution-arsenal` | SolAr apiserver, controller-manager, renderer, UI + etcd images, Helm chart | [README](solution-arsenal/README.md) |
+| `opendefense.cloud/solution-arsenal-discovery` | SolAr discovery image, Helm chart | [README](solution-arsenal-discovery/README.md) |
+| `opendefense.cloud/arc` | ARC apiserver, controller-manager + etcd images, Helm chart | [README](artifact-conduit/README.md) |
+| `opendefense.cloud/argo-workflows` | controller, server, executor images, Helm chart | [README](argo-workflows/README.md) |
+| `opendefense.cloud/flux` | Flux controller + CLI images, Helm chart | [README](flux/README.md) |
+| `opendefense.cloud/zot` | zot + alpine images, Helm chart | [README](zot/README.md) |
 
 ## Layout
 
@@ -38,7 +44,7 @@ One directory per component, discovered automatically:
 ```
 
 Everything else is shared: `Makefile` (all commands), `.ocmconfig` (credentials,
-signer and verifier), `airgap.ocmconfig` (by-value uploader), `renovate.json` (version bumps),
+signer and verifier), `airgap.ocmconfig` (by-value bundle), `renovate.json` (version bumps),
 `.github/workflows/` (release, Scorecard, commit and workflow linting).
 
 ## Adding a component
@@ -91,6 +97,16 @@ Published paths keep the source image path under the target repository, so the
 chart lands at `<REGISTRY>/opendefensecloud/charts/<component>`. The doubled
 `opendefensecloud` is expected.
 
+The same holds for a by-value transfer into a registry, which needs an `oci`
+uploader in place of `airgap.ocmconfig`: an artifact lands at
+`<target>/<source path without host>`, and the OCI uploader cannot change that.
+`quay.io/coreos/etcd:v3.6.11` ends up at `<target>/coreos/etcd:v3.6.11`, and
+`docker.io/library/alpine:3.24` at `<target>/library/alpine:3.24`. This flat
+layout is deliberate and has one risk: two sources that
+differ only in their host land on the same path. `make lint-constructors`
+fails when that happens. Several components sharing one identical reference,
+like etcd in `solution-arsenal` and `arc`, is fine.
+
 ## SBOMs
 
 SBOMs are `type: sbom` resources in the constructor, one per image and
@@ -118,7 +134,15 @@ contain no binaries.
 
 **A component's version is the version of the artifact it wraps.** Chart 0.4.0
 means component 0.4.0 read from the `helmChart` resource (`make version`).
-There is no second version line to keep in sync.
+There is no second version line to keep in sync. A `v` prefix on the chart tag
+is dropped, so ARC's chart `v0.3.2` means component `0.3.2`.
+
+**Components moved from ocm-components share their repository with old
+versions.** `opendefense.cloud/{solution-arsenal,solution-arsenal-discovery,arc,flux,argo-workflows,zot}`
+already hold `v26.x` versions released by ocm-components under its repo-wide
+tag. They sort above the chart-derived versions published here (`v26.5.8 >
+0.4.0`), so anything that resolves "latest" or a range picks the stale ones. Pin
+an explicit version.
 
 ```text
 Renovate bumps the chart/image → merge to main → published + signed → tagged
