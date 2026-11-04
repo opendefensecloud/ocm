@@ -8,8 +8,9 @@
 # Sigstore keyless needs no secrets — on GitHub Actions the signing handler
 # picks up the ambient OIDC token and forwards it to cosign.
 #
-# Only the SIGNER lives here. The verifier must be a separate file passed via
-# --verifier-spec; a `verifier:` key in this block is silently ignored.
+# The verifier pins WHO may have signed. Without both constraints a keyless
+# signature proves only that somebody signed. (Before CLI 0.21 a `verifier:` key
+# here was silently ignored and needed --verifier-spec; 0.21 removed that flag.)
 type: generic.config.ocm.software/v1
 configurations:
   - type: credentials.config.ocm.software/v1
@@ -22,3 +23,7 @@ configurations:
     signature: opendefense.cloud
     signer:
       type: SigstoreSigningConfiguration/v1alpha1
+    verifier:
+      type: SigstoreVerificationConfiguration/v1alpha1
+      certificateOIDCIssuer: https://token.actions.githubusercontent.com
+      certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
