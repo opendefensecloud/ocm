@@ -29,6 +29,13 @@ jobs:
         with:
           persist-credentials: false
 
+      # Image path collisions between components. Needs no
+      # registry, so it runs once for all components.
+      - name: Lint constructors
+        env:
+          DEV_KIT: "0"
+        run: make lint-constructors
+
       - name: Discover components
         id: list
         env:
