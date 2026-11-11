@@ -29,6 +29,7 @@ from their own source repositories.
 | `opendefense.cloud/argo-workflows` | controller, server, executor images, Helm chart | [README](argo-workflows/README.md) |
 | `opendefense.cloud/flux` | Flux controller + CLI images, Helm chart | [README](flux/README.md) |
 | `opendefense.cloud/zot` | zot + alpine images, Helm chart | [README](zot/README.md) |
+| `opendefense.cloud/ocm-demo` | example nginx image, Helm chart | [README](ocm-demo/README.md) |
 
 ## Layout
 
@@ -138,7 +139,7 @@ There is no second version line to keep in sync. A `v` prefix on the chart tag
 is dropped, so ARC's chart `v0.3.2` means component `0.3.2`.
 
 **Components moved from ocm-components share their repository with old
-versions.** `opendefense.cloud/{solution-arsenal,solution-arsenal-discovery,arc,flux,argo-workflows,zot}`
+versions.** `opendefense.cloud/{solution-arsenal,solution-arsenal-discovery,arc,flux,argo-workflows,zot,ocm-demo}`
 already hold `v26.x` versions released by ocm-components under its repo-wide
 tag. They sort above the chart-derived versions published here (`v26.5.8 >
 0.4.0`), so anything that resolves "latest" or a range picks the stale ones. Pin

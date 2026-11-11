@@ -47,6 +47,13 @@
   ],
   "packageRules": [
     {
+      "description": "ocm-demo/charts is kept as source only and never built (the constructor references the published chart), so bumps there would change nothing.",
+      "matchFileNames": [
+        "ocm-demo/charts/**"
+      ],
+      "enabled": false
+    },
+    {
       "description": "The image repositories publish both 0.5.0 and v0.5.0 for the same release; the chart repository only publishes unprefixed tags. Without this, Renovate picks the v-prefixed image tags and a component ends up mixing both formats. Constrain every opendefensecloud dependency to the unprefixed scheme — the common denominator.",
       "matchFileNames": [
         "**/component-constructor.yaml"

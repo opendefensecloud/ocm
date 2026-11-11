@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/ocm-demo
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: ocm-demo
+      - name: app.kubernetes.io/component
+        value: example
+    resources:
+      - name: demo-chart
+        type: helmChart
+        version: "0.1.0"
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/opendefense.cloud/ocm-demo/demo:0.1.0@sha256:ce6e5f4b37ea0b7578ec70c133bcd8d79d9919ac1f337924377f0525818982e4
+
+      - name: helm-values-template
+        type: yaml
+        version: "0.1.0"
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: demo-chart
+        relation: local
+        input:
+          type: File/v1
+          path: values.yaml.tpl
+          mediaType: application/yaml
+
+      - name: nginx-image
+        type: ociImage
+        version: "1.28.3"
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/linuxserver/nginx:1.28.3@sha256:20cfa1fc5858147b702ab226b637beb19d9373dc909096bdc783693a542101c3
