@@ -17,11 +17,11 @@ components:
       # Argo Workflows Helm Chart (official argoproj)
       - name: argo-workflows-chart
         type: helmChart
-        version: 1.0.14
+        version: 1.1.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/argoproj/argo-helm/argo-workflows:1.0.14
+          imageReference: ghcr.io/argoproj/argo-helm/argo-workflows:1.1.1
 
       - name: argo-workflows-chart-values-template
         type: yaml
@@ -38,29 +38,29 @@ components:
       # Workflow Controller Container Image
       - name: argo-workflows-controller-image
         type: ociImage
-        version: v4.0.5
+        version: v4.1.6
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: quay.io/argoproj/workflow-controller:v4.0.5
+          imageReference: quay.io/argoproj/workflow-controller:v4.1.6
 
       # Argo Server (CLI/UI) Container Image
       - name: argo-workflows-server-image
         type: ociImage
-        version: v4.0.5
+        version: v4.1.6
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: quay.io/argoproj/argocli:v4.0.5
+          imageReference: quay.io/argoproj/argocli:v4.1.6
 
       # Workflow Executor (argoexec) Container Image
       - name: argo-workflows-executor-image
         type: ociImage
-        version: v4.0.5
+        version: v4.1.6
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: quay.io/argoproj/argoexec:v4.0.5
+          imageReference: quay.io/argoproj/argoexec:v4.1.6
 
       # Minimal Configuration (single replica, no auth, dev/test)
       - name: argo-workflows-minimal-config
