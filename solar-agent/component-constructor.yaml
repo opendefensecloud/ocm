@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-component-model/open-component-model/main/bindings/go/constructor/spec/v1/resources/schema-2020-12.json
+components:
+  - name: opendefense.cloud/solar-agent
+    version: ${OCM_VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: solar-agent
+      - name: app.kubernetes.io/component
+        value: agent
+      - name: app.kubernetes.io/part-of
+        value: solution-arsenal
+    resources:
+      # SolAr Agent Helm Chart
+      - name: solar-agent-chart
+        type: helmChart
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/charts/solar-agent:0.4.0@sha256:fbdbff3ae8fa09d8147b95df83b520da0afe1566ec82670ed8c0f77c90e805bb
+
+      # Helm Values Template for the SolAr Agent Helm Chart
+      - name: helm-values-template
+        type: yaml
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: solar-agent-chart
+        relation: local
+        input:
+          type: File/v1
+          path: values.yaml.tpl
+          mediaType: application/yaml
+
+      # SolAr Agent Container Image
+      - name: solar-agent-image
+        type: ociImage
+        version: 0.4.0
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/opendefensecloud/solar-agent:0.4.0@sha256:0a97772c61eeb9493be74a8bbe2c1fa01aa2076f23cf4c1670453c09e87a5684
