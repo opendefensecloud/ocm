@@ -16,11 +16,11 @@ components:
     resources:
       - name: zot-chart
         type: helmChart
-        version: "0.1.116"
+        version: "0.1.134"
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/project-zot/helm-charts/zot:0.1.116
+          imageReference: ghcr.io/project-zot/helm-charts/zot:0.1.134
 
       - name: zot-chart-values-template
         type: yaml
@@ -36,11 +36,11 @@ components:
 
       - name: zot-image
         type: ociImage
-        version: v2.1.17
+        version: v2.1.23
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/project-zot/zot:v2.1.17
+          imageReference: ghcr.io/project-zot/zot:v2.1.23
 
       - name: alpine-image
         type: ociImage
