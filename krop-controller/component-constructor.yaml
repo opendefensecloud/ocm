@@ -15,11 +15,11 @@ components:
       # Helm Chart
       - name: krop-controller-chart
         type: helmChart
-        version: "0.1.5"
+        version: "0.1.7"
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/opendefensecloud/charts/krop-controller:0.1.5@sha256:f27c8cc5539a544746de0f43d2f6616b0e85748656a1e13e23402751052f580f
+          imageReference: ghcr.io/opendefensecloud/charts/krop-controller:0.1.7@sha256:25de0b9ac4f3219eed4ca27a8a4956e40f4a307480133978d589d3b7e16935ef
       # Values template, rendered by ocm-kit: the label links it to the chart,
       # and the image reference it emits is the localized one after transfer.
       - name: krop-controller-chart-values-template
@@ -34,11 +34,11 @@ components:
       # Controller Image. 
       - name: krop-controller-image
         type: ociImage
-        version: "0.1.5"
+        version: "0.1.7"
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/opendefensecloud/krop-controller:0.1.5@sha256:cb78ee74cbe89c89091d4c228644a7119a7438c3fdf00b127d99615d367fcebf
+          imageReference: ghcr.io/opendefensecloud/krop-controller:0.1.7@sha256:d0f39930072a9e7c319ddb34663fd9f26e8c25fd881732656a2649133dcd9546
       # SBOMs: CycloneDX per image and platform, published by the upstream
       # release. The label links each to its image and is covered by the
       # signature, and it takes precedence over the BuildKit attestation in the
