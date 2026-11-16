@@ -4,6 +4,7 @@
 /krop-controller/              @opendefensecloud/cat
 /solution-arsenal/             @opendefensecloud/odd
 /solution-arsenal-discovery/   @opendefensecloud/odd
+/solar-agent/                  @opendefensecloud/odd
 /artifact-conduit/             @opendefensecloud/odd
 /argo-workflows/               @opendefensecloud/odd
 /flux/                         @opendefensecloud/odd

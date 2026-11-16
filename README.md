@@ -25,6 +25,7 @@ from their own source repositories.
 | `opendefense.cloud/krop-controller` | controller image, Helm chart | [README](krop-controller/README.md) |
 | `opendefense.cloud/solution-arsenal` | SolAr apiserver, controller-manager, renderer, UI + etcd images, Helm chart | [README](solution-arsenal/README.md) |
 | `opendefense.cloud/solution-arsenal-discovery` | SolAr discovery image, Helm chart | [README](solution-arsenal-discovery/README.md) |
+| `opendefense.cloud/solar-agent` | SolAr agent image, Helm chart | [README](solar-agent/README.md) |
 | `opendefense.cloud/arc` | ARC apiserver, controller-manager + etcd images, Helm chart | [README](artifact-conduit/README.md) |
 | `opendefense.cloud/argo-workflows` | controller, server, executor images, Helm chart | [README](argo-workflows/README.md) |
 | `opendefense.cloud/flux` | Flux controller + CLI images, Helm chart | [README](flux/README.md) |
