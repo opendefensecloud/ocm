@@ -17,11 +17,11 @@ components:
       # Argo Workflows Helm Chart (official argoproj)
       - name: argo-workflows-chart
         type: helmChart
-        version: 1.0.14
+        version: 2.0.18
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/argoproj/argo-helm/argo-workflows:1.0.14
+          imageReference: ghcr.io/argoproj/argo-helm/argo-workflows:2.0.18
 
       - name: argo-workflows-chart-values-template
         type: yaml
