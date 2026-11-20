@@ -17,11 +17,11 @@ components:
       # install via helm install
       - name: flux-chart
         type: helmChart
-        version: "2.18.3"
+        version: "2.20.0"
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd-community/charts/flux2:2.18.3
+          imageReference: ghcr.io/fluxcd-community/charts/flux2:2.20.0
 
       - name: flux-chart-values-template
         type: yaml
@@ -38,64 +38,64 @@ components:
       # images
       - name: helm-controller-image
         type: ociImage
-        version: v1.5.5
+        version: v1.7.2
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/helm-controller:v1.5.5
+          imageReference: ghcr.io/fluxcd/helm-controller:v1.7.2
 
       - name: cli-image
         type: ociImage
-        version: v2.8.8
+        version: v2.10.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/flux-cli:v2.8.8
+          imageReference: ghcr.io/fluxcd/flux-cli:v2.10.1
 
       - name: image-automation-controller-image
         type: ociImage
-        version: v1.1.4
+        version: v1.3.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/image-automation-controller:v1.1.4
+          imageReference: ghcr.io/fluxcd/image-automation-controller:v1.3.1
 
       - name: image-reflector-controller-image
         type: ociImage
-        version: v1.1.2
+        version: v1.3.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/image-reflector-controller:v1.1.2
+          imageReference: ghcr.io/fluxcd/image-reflector-controller:v1.3.1
 
       - name: kustomize-controller-image
         type: ociImage
-        version: v1.8.5
+        version: v1.10.2
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/kustomize-controller:v1.8.5
+          imageReference: ghcr.io/fluxcd/kustomize-controller:v1.10.2
 
       - name: notification-controller-image
         type: ociImage
-        version: v1.8.3
+        version: v1.10.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/notification-controller:v1.8.3
+          imageReference: ghcr.io/fluxcd/notification-controller:v1.10.1
 
       - name: source-controller-image
         type: ociImage
-        version: v1.8.2
+        version: v1.10.2
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/source-controller:v1.8.2
+          imageReference: ghcr.io/fluxcd/source-controller:v1.10.2
 
       - name: source-watcher-image
         type: ociImage
-        version: v2.1.1
+        version: v2.3.1
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: ghcr.io/fluxcd/source-watcher:v2.1.1
+          imageReference: ghcr.io/fluxcd/source-watcher:v2.3.1
